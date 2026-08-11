@@ -42,7 +42,7 @@ name: path-enforcement
 
 on:
   pull_request:
-    branches: [develop, staging]
+    branches: [develop, staging, main]
   merge_group:
 
 # Read-only: workflow ini hanya memvalidasi, tidak menulis apa pun ke repo.

@@ -21,7 +21,15 @@ func NewRouter(db *repository.DB) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /health", healthHandler(db))
-	mux.HandleFunc("GET /api/v1/backup", backupHandler(db))
+
+	// box db lewat interface bernilai nil bila db nil; mengikat (*DB)(nil)
+	// langsung ke interface backupRepo menghasilkan interface non-nil yang
+	// menyembunyikan nil pointer dari guard db == nil di backupHandler.
+	var backup backupRepo
+	if db != nil {
+		backup = db
+	}
+	mux.HandleFunc("GET /api/v1/backup", backupHandler(backup))
 
 	return mux
 }

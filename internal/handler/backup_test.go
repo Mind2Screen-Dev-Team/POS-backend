@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -20,6 +21,10 @@ type mockBackupRepo struct {
 
 func (m *mockBackupRepo) ListTransactions(_ context.Context, _ string, _, _ time.Time) ([]repository.Transaction, error) {
 	return m.transactions, m.err
+}
+
+func (m *mockBackupRepo) Migrate(_ context.Context) error {
+	return m.err
 }
 
 func TestBackupHandler(t *testing.T) {
@@ -207,15 +212,16 @@ func TestBackupHandler(t *testing.T) {
 
 	// TestRouterBackupRoute verifies the /api/v1/backup route is registered.
 	func TestRouterBackupRoute(t *testing.T) {
-		router := handler.NewRouter(nil)
+		router := NewRouter(nil)
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/backup?user_id=01234567-89ab-cdef-0123-456789abcdef&start_date=2024-01-01&end_date=2024-01-31", nil)
 		rec := httptest.NewRecorder()
 
 		router.ServeHTTP(rec, req)
 
-		// Should hit the backup handler (which requires valid params)
-		if rec.Code != http.StatusBadRequest {
-			t.Errorf("status = %d, want %d (backup handler should validate params)", rec.Code, http.StatusBadRequest)
+		// Nil DB → backup handler merespon 503 service unavailable, bukan 404
+		// (route ter-register dan handler dijalankan).
+		if rec.Code != http.StatusServiceUnavailable {
+			t.Errorf("status = %d, want %d (backup handler unavailable tanpa DB)", rec.Code, http.StatusServiceUnavailable)
 		}
 	}
 

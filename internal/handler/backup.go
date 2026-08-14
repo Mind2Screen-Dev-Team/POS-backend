@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/Mind2Screen-Dev-Team/POS-backend/internal/repository"
@@ -12,12 +13,32 @@ import (
 // backupRepo is the data access surface the backup handler needs.
 type backupRepo interface {
 	ListTransactions(ctx context.Context, userID string, start, end time.Time) ([]repository.Transaction, error)
+	Migrate(ctx context.Context) error
 }
+
+var (
+	migrateOnce sync.Once
+	migrateErr  error
+)
 
 // backupHandler handles GET /api/v1/backup — restore data transaksi.
 // Idempoten: GET tidak menghapus data server, bisa diulang.
 func backupHandler(db backupRepo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Check if DB is available
+		if db == nil {
+			writeError(w, http.StatusServiceUnavailable, "server_error", "Database connection not available")
+			return
+		}
+
+		// Ensure DB is migrated
+		migrateOnce.Do(func() {
+			migrateErr = db.Migrate(r.Context())
+		})
+		if migrateErr != nil {
+			writeError(w, http.StatusInternalServerError, "server_error", "Database migration failed")
+			return
+		}
 		q := r.URL.Query()
 		userID := q.Get("user_id")
 		startDate := q.Get("start_date")

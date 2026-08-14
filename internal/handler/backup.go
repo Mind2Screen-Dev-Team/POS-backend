@@ -31,14 +31,6 @@ func backupHandler(db backupRepo) http.HandlerFunc {
 			return
 		}
 
-		// Ensure DB is migrated
-		migrateOnce.Do(func() {
-			migrateErr = db.Migrate(r.Context())
-		})
-		if migrateErr != nil {
-			writeError(w, http.StatusInternalServerError, "server_error", "Database migration failed")
-			return
-		}
 		q := r.URL.Query()
 		userID := q.Get("user_id")
 		startDate := q.Get("start_date")

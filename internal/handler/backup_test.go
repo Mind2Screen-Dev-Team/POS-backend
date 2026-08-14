@@ -14,17 +14,32 @@ import (
 )
 
 // mockBackupRepo implements the repo surface backupHandler needs.
+var migrateOnceGlobal sync.Once
+var migrateErrGlobal error
+
+func resetMigrationState() {
+	migrateOnceGlobal = sync.Once{}
+	migrateErrGlobal = nil
+}
+
 type mockBackupRepo struct {
 	transactions []repository.Transaction
 	err          error
+	capturedStart time.Time
+	capturedEnd   time.Time
 }
 
-func (m *mockBackupRepo) ListTransactions(_ context.Context, _ string, _, _ time.Time) ([]repository.Transaction, error) {
+func (m *mockBackupRepo) ListTransactions(_ context.Context, _ string, start, end time.Time) ([]repository.Transaction, error) {
+	m.capturedStart = start
+	m.capturedEnd = end
 	return m.transactions, m.err
 }
 
 func (m *mockBackupRepo) Migrate(_ context.Context) error {
-	return m.err
+	migrateOnceGlobal.Do(func() {
+		migrateErrGlobal = m.err
+	})
+	return migrateErrGlobal
 }
 
 func TestBackupHandler(t *testing.T) {

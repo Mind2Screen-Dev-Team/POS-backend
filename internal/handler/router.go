@@ -22,6 +22,15 @@ func NewRouter(db *repository.DB) http.Handler {
 
 	mux.HandleFunc("GET /health", healthHandler(db))
 
+	// box db lewat interface bernilai nil bila db nil; mengikat (*DB)(nil)
+	// langsung ke interface backupRepo menghasilkan interface non-nil yang
+	// menyembunyikan nil pointer dari guard db == nil di backupHandler.
+	var backup backupRepo
+	if db != nil {
+		backup = db
+	}
+	mux.HandleFunc("GET /api/v1/backup", backupHandler(backup))
+
 	return mux
 }
 
@@ -54,4 +63,49 @@ func writeJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(data) //nolint:errcheck // writing to ResponseWriter
+}
+
+// writeError writes a CONTRACT-compatible error envelope:
+// {"error": {"code": "...", "message": "..."}}.
+func writeError(w http.ResponseWriter, status int, code, message string) {
+	writeJSON(w, status, map[string]any{
+		"error": map[string]string{
+			"code":    code,
+			"message": message,
+		},
+	})
+}
+
+// isUUID reports whether s is a valid UUID (8-4-4-4-12 hex with dashes).
+// Implemented with the standard library to avoid extra dependencies.
+func isUUID(s string) bool {
+	if len(s) != 36 {
+		return false
+	}
+	for i, c := range s {
+		if i == 8 || i == 13 || i == 18 || i == 23 {
+			if c != '-' {
+				return false
+			}
+			continue
+		}
+		if !isHexDigit(c) {
+			return false
+		}
+	}
+	return true
+}
+
+// isHexDigit reports whether c is a hexadecimal digit.
+func isHexDigit(c rune) bool {
+	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
+}
+
+// parseDate parses a YYYY-MM-DD date string.
+func parseDate(s string) (time.Time, bool) {
+	t, err := time.Parse("2006-01-02", s)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return t, true
 }

@@ -4,10 +4,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/Mind2Screen-Dev-Team/POS-backend/internal/repository"
 )
 
 func TestBackupHandler(t *testing.T) {
@@ -61,8 +60,9 @@ func TestBackupHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			req, _ := http.NewRequest("GET", "/api/v1/backup?"+tt.queryParams, nil)
 			recorder := httptest.NewRecorder()
-			// Call handler
-			// ... (mocked setup)
+			mockDB := &repository.DB{}
+			handler := BackupHandler(mockDB)
+			handler(recorder, req)
 			assert.Equal(t, tt.expectedStatus, recorder.Code)
 			// Check stored_count if applicable
 		})

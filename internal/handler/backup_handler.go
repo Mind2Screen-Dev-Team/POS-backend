@@ -6,9 +6,9 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/Mind2Screen-Dev-Team/POS-backend/internal/repository"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 var (
@@ -17,9 +17,9 @@ var (
 )
 
 type backupRequest struct {
-	UserID      string          `json:"user_id"`
-	StartDate   string          `json:"start_date"`
-	EndDate     string          `json:"end_date"`
+	UserID       string        `json:"user_id"`
+	StartDate    string        `json:"start_date"`
+	EndDate      string        `json:"end_date"`
 	Transactions []transaction `json:"transactions"`
 }
 

@@ -21,7 +21,6 @@ func NewRouter(db *repository.DB) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /health", healthHandler(db))
-	mux.HandleFunc("POST /api/v1/backup", BackupHandler(db))
 
 	return mux
 }

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"regexp"
-	"strconv"
 	"time"
 
 	"github.com/Mind2Screen-Dev-Team/POS-backend/internal/repository"
@@ -39,34 +38,33 @@ type backupResponse struct {
 
 func BackupHandler(db *repository.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req backupRequest
-		query := r.URL.Query()
-		id := query.Get("id")
-		startDate := query.Get("start")
-		endDate := query.Get("end")
-		batchStr := query.Get("batch")
-
-		if id == "" || startDate == "" || endDate == "" {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "missing_required_parameters"})
+		if r.Method != http.MethodPost {
+			writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method_not_allowed"})
 			return
 		}
 
-		if !uuidRegex.MatchString(id) {
+		var req backupRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_json"})
+			return
+		}
+
+		if !uuidRegex.MatchString(req.UserID) {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_user_id"})
 			return
 		}
 
-		if !dateRegex.MatchString(startDate) || !dateRegex.MatchString(endDate) {
+		if !dateRegex.MatchString(req.StartDate) || !dateRegex.MatchString(req.EndDate) {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_date_format"})
 			return
 		}
 
-		start, err := time.Parse("2006-01-02", startDate)
+		start, err := time.Parse("2006-01-02", req.StartDate)
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_date_format"})
 			return
 		}
-		end, err := time.Parse("2006-01-02", endDate)
+		end, err := time.Parse("2006-01-02", req.EndDate)
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_date_format"})
 			return
@@ -77,20 +75,14 @@ func BackupHandler(db *repository.DB) http.HandlerFunc {
 			return
 		}
 
-		batch := 500
-		if batchStr != "" {
-			batch, err = strconv.Atoi(batchStr)
-			if err != nil || batch > 500 || batch < 1 {
-				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_batch"})
-				return
-			}
+		if len(req.Transactions) > 500 {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "schema_CONTRACT-301"})
+			return
 		}
 
-		req = backupRequest{
-			UserID:    id,
-			StartDate: startDate,
-			EndDate:   endDate,
-			Transactions: make([]transaction, batch),
+		if db == nil || db.Pool == nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "db_error_CONTRACT-301"})
+			return
 		}
 
 		backupID := uuid.New().String()

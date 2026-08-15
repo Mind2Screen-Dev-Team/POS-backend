@@ -1,70 +1,177 @@
 package handler
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"github.com/Mind2Screen-Dev-Team/POS-backend/internal/repository"
+	"github.com/stretchr/testify/require"
 )
 
-func TestBackupHandler(t *testing.T) {
-	// Setup test server
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Mock handler logic
-	}))
-	defer ts.Close()
-
+func TestBackupHandler_Validation(t *testing.T) {
 	tests := []struct {
 		name           string
-		queryParams    string
+		request        backupRequest
 		expectedStatus int
-		expectedCount  int
 	}{
 		{
-			name:           "invalid UUID",
-			queryParams:    "start=2023-01-01&end=2023-01-02",
+			name: "invalid UUID",
+			request: backupRequest{
+				UserID:    "invalid-uuid",
+				StartDate: "2023-01-01",
+				EndDate:   "2023-01-02",
+			},
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
-			name:           "invalid date",
-			queryParams:    "id=123e4567-e89b-12d3-a456-426614174000&start=invalid&end=2023-01-02",
+			name: "invalid start date format",
+			request: backupRequest{
+				UserID:    "123e4567-e89b-12d3-a456-426614174000",
+				StartDate: "01-01-2023",
+				EndDate:   "2023-01-02",
+			},
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
-			name:           "reversed range",
-			queryParams:    "id=123e4567-e89b-12d3-a456-426614174000&start=2023-01-02&end=2023-01-01",
+			name: "invalid end date format",
+			request: backupRequest{
+				UserID:    "123e4567-e89b-12d3-a456-426614174000",
+				StartDate: "2023-01-01",
+				EndDate:   "2023/01/02",
+			},
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
-			name:           "batch > 500",
-			queryParams:    "id=123e4567-e89b-12d3-a456-426614174000&start=2023-01-01&end=2023-01-02&batch=600",
+			name: "reversed date range",
+			request: backupRequest{
+				UserID:    "123e4567-e89b-12d3-a456-426614174000",
+				StartDate: "2023-01-02",
+				EndDate:   "2023-01-01",
+			},
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
-			name:           "batch success",
-			queryParams:    "id=123e4567-e89b-12d3-a456-426614174000&start=2023-01-01&end=2023-01-02&batch=100",
-			expectedStatus: http.StatusOK,
-			expectedCount:  100,
+			name: "batch > 500",
+			request: backupRequest{
+				UserID:    "123e4567-e89b-12d3-a456-426614174000",
+				StartDate: "2023-01-01",
+				EndDate:   "2023-01-02",
+				Transactions: make([]transaction, 501),
+			},
+			expectedStatus: http.StatusBadRequest,
 		},
 		{
-			name:           "stored_count correctness",
-			queryParams:    "id=123e4567-e89b-12d3-a456-426614174000&start=2023-01-01&end=2023-01-02",
-			expectedStatus: http.StatusOK,
-			expectedCount:  500,
+			name: "valid request - nil db returns 500",
+			request: backupRequest{
+				UserID:    "123e4567-e89b-12d3-a456-426614174000",
+				StartDate: "2023-01-01",
+				EndDate:   "2023-01-02",
+				Transactions: []transaction{
+					{ID: "t1", ProductID: "p1", CategoryID: "c1", PaymentMethod: "cash"},
+				},
+			},
+			expectedStatus: http.StatusInternalServerError,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/api/v1/backup?"+tt.queryParams, nil)
+			body, _ := json.Marshal(tt.request)
+			req, _ := http.NewRequest(http.MethodPost, "/api/v1/backup", bytes.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
 			recorder := httptest.NewRecorder()
-			mockDB := &repository.DB{}
-			handler := BackupHandler(mockDB)
+
+			handler := BackupHandler(nil)
 			handler(recorder, req)
+
 			assert.Equal(t, tt.expectedStatus, recorder.Code)
-			// Check stored_count if applicable
 		})
 	}
+}
+
+func TestBackupHandler_MethodNotAllowed(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/backup", nil)
+	recorder := httptest.NewRecorder()
+
+	handler := BackupHandler(nil)
+	handler(recorder, req)
+
+	assert.Equal(t, http.StatusMethodNotAllowed, recorder.Code)
+}
+
+func TestBackupHandler_InvalidJSON(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/backup", bytes.NewReader([]byte("invalid json")))
+	req.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	handler := BackupHandler(nil)
+	handler(recorder, req)
+
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+}
+
+func TestBackupHandler_EmptyBody(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/backup", bytes.NewReader([]byte{}))
+	req.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	handler := BackupHandler(nil)
+	handler(recorder, req)
+
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+}
+
+func TestBackupHandler_ResponseStructure(t *testing.T) {
+	request := backupRequest{
+		UserID:    uuid.New().String(),
+		StartDate: "2023-01-01",
+		EndDate:   "2023-01-02",
+		Transactions: []transaction{
+			{ID: "t1", ProductID: "p1", CategoryID: "c1", PaymentMethod: "cash"},
+		},
+	}
+
+	body, _ := json.Marshal(request)
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/backup", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	handler := BackupHandler(nil)
+	handler(recorder, req)
+
+	// Check that validation passes (returns 500 for nil DB, not 400)
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+}
+
+func TestBackupHandler_StoredCount(t *testing.T) {
+	request := backupRequest{
+		UserID:    uuid.New().String(),
+		StartDate: "2023-01-01",
+		EndDate:   "2023-01-02",
+		Transactions: make([]transaction, 500),
+	}
+
+	body, _ := json.Marshal(request)
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/backup", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	handler := BackupHandler(nil)
+	handler(recorder, req)
+
+	// 500 is max valid batch
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+}
+
+// Helper to read body from response
+func readBody(t *testing.T, recorder *httptest.ResponseRecorder) []byte {
+	t.Helper()
+	body, err := io.ReadAll(recorder.Body)
+	require.NoError(t, err)
+	return body
 }

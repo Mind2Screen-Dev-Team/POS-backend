@@ -33,3 +33,7 @@ coverage.out
 
 # tmp
 tmp/
+
+#docker
+docker-compose.yml
+Dockerfile

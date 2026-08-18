@@ -2,7 +2,9 @@ APP_NAME := pos-backend
 BUILD_DIR := bin
 MAIN_PATH := ./cmd/server
 
-.PHONY: build run test vet fmt clean lint
+.PHONY: build run test vet fmt clean lint verify
+
+verify: fmt vet test
 
 build:
 	go build -o $(BUILD_DIR)/server $(MAIN_PATH)

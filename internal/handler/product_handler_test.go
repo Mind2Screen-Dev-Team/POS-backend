@@ -145,11 +145,11 @@ func TestCreateProduct_Success(t *testing.T) {
 
 	kategoriID := uuid.New()
 	reqBody := map[string]any{
-		"nama":       "Produk Test",
-		"deskripsi":  "Deskripsi produk",
-		"harga_beli": 10000.0,
-		"harga_jual": 15000.0,
-		"stok":       50.0,
+		"nama":        "Produk Test",
+		"deskripsi":   "Deskripsi produk",
+		"harga_beli":  10000.0,
+		"harga_jual":  15000.0,
+		"stok":        50.0,
 		"kategori_id": kategoriID.String(),
 		"foto_url":    "https://example.com/foto.jpg",
 	}
@@ -188,10 +188,10 @@ func TestCreateProduct_MissingNama(t *testing.T) {
 	repo := newMockProductRepo()
 
 	reqBody := map[string]any{
-		"deskripsi":  "Deskripsi produk",
-		"harga_beli": 10000.0,
-		"harga_jual": 15000.0,
-		"stok":       50.0,
+		"deskripsi":   "Deskripsi produk",
+		"harga_beli":  10000.0,
+		"harga_jual":  15000.0,
+		"stok":        50.0,
 		"kategori_id": uuid.New().String(),
 	}
 	body, _ := json.Marshal(reqBody)
@@ -249,10 +249,10 @@ func TestCreateProduct_InvalidKategoriID(t *testing.T) {
 	repo := newMockProductRepo()
 
 	reqBody := map[string]any{
-		"nama":       "Produk Test",
-		"harga_beli": 10000.0,
-		"harga_jual": 15000.0,
-		"stok":       50.0,
+		"nama":        "Produk Test",
+		"harga_beli":  10000.0,
+		"harga_jual":  15000.0,
+		"stok":        50.0,
 		"kategori_id": "invalid-uuid",
 	}
 	body, _ := json.Marshal(reqBody)
@@ -280,10 +280,10 @@ func TestCreateProduct_NegativeHargaBeli(t *testing.T) {
 	repo := newMockProductRepo()
 
 	reqBody := map[string]any{
-		"nama":       "Produk Test",
-		"harga_beli": -1000.0,
-		"harga_jual": 15000.0,
-		"stok":       50.0,
+		"nama":        "Produk Test",
+		"harga_beli":  -1000.0,
+		"harga_jual":  15000.0,
+		"stok":        50.0,
 		"kategori_id": uuid.New().String(),
 	}
 	body, _ := json.Marshal(reqBody)
@@ -311,10 +311,10 @@ func TestCreateProduct_NegativeHargaJual(t *testing.T) {
 	repo := newMockProductRepo()
 
 	reqBody := map[string]any{
-		"nama":       "Produk Test",
-		"harga_beli": 10000.0,
-		"harga_jual": -5000.0,
-		"stok":       50.0,
+		"nama":        "Produk Test",
+		"harga_beli":  10000.0,
+		"harga_jual":  -5000.0,
+		"stok":        50.0,
 		"kategori_id": uuid.New().String(),
 	}
 	body, _ := json.Marshal(reqBody)
@@ -342,10 +342,10 @@ func TestCreateProduct_NegativeStok(t *testing.T) {
 	repo := newMockProductRepo()
 
 	reqBody := map[string]any{
-		"nama":       "Produk Test",
-		"harga_beli": 10000.0,
-		"harga_jual": 15000.0,
-		"stok":       -10.0,
+		"nama":        "Produk Test",
+		"harga_beli":  10000.0,
+		"harga_jual":  15000.0,
+		"stok":        -10.0,
 		"kategori_id": uuid.New().String(),
 	}
 	body, _ := json.Marshal(reqBody)
@@ -533,11 +533,11 @@ func TestUpdateProduct_Success(t *testing.T) {
 	repo.CreateProduct(context.Background(), prodID.String(), "Original Product", "", "", kategoriID.String(), 10000, 15000, 50)
 
 	updateReqBody := map[string]any{
-		"nama":       "Updated Product",
-		"deskripsi":  "Updated description",
-		"harga_beli": 12000.0,
-		"harga_jual": 18000.0,
-		"stok":       100.0,
+		"nama":        "Updated Product",
+		"deskripsi":   "Updated description",
+		"harga_beli":  12000.0,
+		"harga_jual":  18000.0,
+		"stok":        100.0,
 		"kategori_id": uuid.New().String(),
 	}
 	updateBody, _ := json.Marshal(updateReqBody)
@@ -571,11 +571,11 @@ func TestUpdateProduct_NotFound(t *testing.T) {
 
 	nonExistentID := uuid.New()
 	reqBody := map[string]any{
-		"nama":       "Updated Product",
-		"deskripsi":  "Updated description",
-		"harga_beli": 12000.0,
-		"harga_jual": 18000.0,
-		"stok":       100.0,
+		"nama":        "Updated Product",
+		"deskripsi":   "Updated description",
+		"harga_beli":  12000.0,
+		"harga_jual":  18000.0,
+		"stok":        100.0,
 		"kategori_id": uuid.New().String(),
 	}
 	body, _ := json.Marshal(reqBody)
@@ -601,10 +601,10 @@ func TestUpdateProduct_MissingNama(t *testing.T) {
 	repo.CreateProduct(context.Background(), prodID.String(), "Test Product", "", "", kategoriID.String(), 10000, 15000, 50)
 
 	reqBody := map[string]any{
-		"deskripsi":  "Updated description",
-		"harga_beli": 12000.0,
-		"harga_jual": 18000.0,
-		"stok":       100.0,
+		"deskripsi":   "Updated description",
+		"harga_beli":  12000.0,
+		"harga_jual":  18000.0,
+		"stok":        100.0,
 		"kategori_id": uuid.New().String(),
 	}
 	body, _ := json.Marshal(reqBody)
@@ -776,11 +776,11 @@ func TestCreateProduct_OptionalFotoURL(t *testing.T) {
 	repo := newMockProductRepo()
 
 	reqBody := map[string]any{
-		"nama":       "Produk Test",
-		"deskripsi":  "Optional foto test",
-		"harga_beli": 10000.0,
-		"harga_jual": 15000.0,
-		"stok":       50.0,
+		"nama":        "Produk Test",
+		"deskripsi":   "Optional foto test",
+		"harga_beli":  10000.0,
+		"harga_jual":  15000.0,
+		"stok":        50.0,
 		"kategori_id": uuid.New().String(),
 		// foto_url is omitted intentionally
 	}
@@ -812,11 +812,11 @@ func TestCreateProduct_OptionalDeskripsi(t *testing.T) {
 	repo := newMockProductRepo()
 
 	reqBody := map[string]any{
-		"nama":       "Produk Test",
+		"nama": "Produk Test",
 		// deskripsi is omitted intentionally
-		"harga_beli": 10000.0,
-		"harga_jual": 15000.0,
-		"stok":       50.0,
+		"harga_beli":  10000.0,
+		"harga_jual":  15000.0,
+		"stok":        50.0,
 		"kategori_id": uuid.New().String(),
 	}
 	body, _ := json.Marshal(reqBody)

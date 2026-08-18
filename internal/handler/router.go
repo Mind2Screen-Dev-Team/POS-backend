@@ -31,6 +31,13 @@ func NewRouter(db *repository.DB) http.Handler {
 	}
 	mux.HandleFunc("GET /api/v1/backup", backupHandler(backup))
 
+	// Product CRUD endpoints
+	mux.HandleFunc("POST /api/v1/products", ProductHandler(db))
+	mux.HandleFunc("GET /api/v1/products", ProductHandler(db))
+	mux.HandleFunc("GET /api/v1/products/{id}", ProductHandler(db))
+	mux.HandleFunc("PUT /api/v1/products/{id}", ProductHandler(db))
+	mux.HandleFunc("DELETE /api/v1/products/{id}", ProductHandler(db))
+
 	return mux
 }
 

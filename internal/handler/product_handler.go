@@ -289,12 +289,24 @@ func handleCreateProduct(repo productRepo) http.HandlerFunc {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "harga_beli_tidak_valid"})
 			return
 		}
+		if req.HargaBeli != float64(int64(req.HargaBeli)) {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "harga_beli_bukan_integer"})
+			return
+		}
 		if req.HargaJual < 0 {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "harga_jual_tidak_valid"})
 			return
 		}
+		if req.HargaJual != float64(int64(req.HargaJual)) {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "harga_jual_bukan_integer"})
+			return
+		}
 		if req.Stok < 0 {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "stok_tidak_valid"})
+			return
+		}
+		if req.Stok != float64(int64(req.Stok)) {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "stok_bukan_integer"})
 			return
 		}
 
@@ -415,12 +427,24 @@ func handleUpdateProduct(repo productRepo) http.HandlerFunc {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "harga_beli_tidak_valid"})
 			return
 		}
+		if req.HargaBeli != float64(int64(req.HargaBeli)) {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "harga_beli_bukan_integer"})
+			return
+		}
 		if req.HargaJual < 0 {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "harga_jual_tidak_valid"})
 			return
 		}
+		if req.HargaJual != float64(int64(req.HargaJual)) {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "harga_jual_bukan_integer"})
+			return
+		}
 		if req.Stok < 0 {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "stok_tidak_valid"})
+			return
+		}
+		if req.Stok != float64(int64(req.Stok)) {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "stok_bukan_integer"})
 			return
 		}
 

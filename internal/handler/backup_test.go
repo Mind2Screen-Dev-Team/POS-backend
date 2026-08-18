@@ -114,7 +114,7 @@ func TestBackupHandler(t *testing.T) {
 			}
 
 			var resp struct {
-				Error        *struct {
+				Error *struct {
 					Code    string `json:"code"`
 					Message string `json:"message"`
 				} `json:"error"`
@@ -135,95 +135,95 @@ func TestBackupHandler(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestBackupHandlerEndDateInclusive verifies transactions at 23:59 on end_date
+// are included in the result (half-open [start, end+1day) range).
+func TestBackupHandlerEndDateInclusive(t *testing.T) {
+	userID := "01234567-89ab-cdef-0123-456789abcdef"
+	endDate := time.Date(2024, 5, 31, 23, 59, 0, 0, time.UTC)
+	transactions := []repository.Transaction{
+		{
+			ID:           "11111111-2222-3333-4444-555555555555",
+			UserID:       userID,
+			TransactedAt: endDate,
+			Payload:      json.RawMessage(`{"amount":100.5}`),
+		},
 	}
 
-	// TestBackupHandlerEndDateInclusive verifies transactions at 23:59 on end_date
-	// are included in the result (half-open [start, end+1day) range).
-	func TestBackupHandlerEndDateInclusive(t *testing.T) {
-		userID := "01234567-89ab-cdef-0123-456789abcdef"
-		endDate := time.Date(2024, 5, 31, 23, 59, 0, 0, time.UTC)
-		transactions := []repository.Transaction{
-			{
-				ID:           "11111111-2222-3333-4444-555555555555",
-				UserID:       userID,
-				TransactedAt: endDate,
-				Payload:      json.RawMessage(`{"amount":100.5}`),
-			},
-		}
+	repo := &mockBackupRepo{transactions: transactions}
+	query := fmt.Sprintf("user_id=%s&start_date=2024-05-01&end_date=2024-05-31", userID)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/backup?"+query, nil)
+	rec := httptest.NewRecorder()
 
-		repo := &mockBackupRepo{transactions: transactions}
-		query := fmt.Sprintf("user_id=%s&start_date=2024-05-01&end_date=2024-05-31", userID)
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/backup?"+query, nil)
-		rec := httptest.NewRecorder()
+	backupHandler(repo)(rec, req)
 
-		backupHandler(repo)(rec, req)
-
-		if rec.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
-		}
-
-		var resp struct {
-			Transactions []repository.Transaction `json:"transactions"`
-		}
-		if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
-			t.Fatalf("unmarshal response: %v", err)
-		}
-
-		if len(resp.Transactions) != 1 {
-			t.Errorf("transactions count = %d, want 1", len(resp.Transactions))
-		}
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 
-	// TestBackupHandlerSingleDayRange verifies start_date == end_date works.
-	func TestBackupHandlerSingleDayRange(t *testing.T) {
-		userID := "01234567-89ab-cdef-0123-456789abcdef"
-		date := "2024-05-15"
-		transactions := []repository.Transaction{
-			{
-				ID:           "11111111-2222-3333-4444-555555555555",
-				UserID:       userID,
-				TransactedAt: time.Date(2024, 5, 15, 10, 30, 0, 0, time.UTC),
-				Payload:      json.RawMessage(`{"amount":100.5}`),
-			},
-		}
-
-		repo := &mockBackupRepo{transactions: transactions}
-		query := fmt.Sprintf("user_id=%s&start_date=%s&end_date=%s", userID, date, date)
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/backup?"+query, nil)
-		rec := httptest.NewRecorder()
-
-		backupHandler(repo)(rec, req)
-
-		if rec.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
-		}
-
-		var resp struct {
-			Transactions []repository.Transaction `json:"transactions"`
-		}
-		if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
-			t.Fatalf("unmarshal response: %v", err)
-		}
-
-		if len(resp.Transactions) != 1 {
-			t.Errorf("transactions count = %d, want 1", len(resp.Transactions))
-		}
+	var resp struct {
+		Transactions []repository.Transaction `json:"transactions"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
 	}
 
-	// TestRouterBackupRoute verifies the /api/v1/backup route is registered.
-	func TestRouterBackupRoute(t *testing.T) {
-		router := NewRouter(nil)
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/backup?user_id=01234567-89ab-cdef-0123-456789abcdef&start_date=2024-01-01&end_date=2024-01-31", nil)
-		rec := httptest.NewRecorder()
-
-		router.ServeHTTP(rec, req)
-
-		// Nil DB → backup handler merespon 503 service unavailable, bukan 404
-		// (route ter-register dan handler dijalankan).
-		if rec.Code != http.StatusServiceUnavailable {
-			t.Errorf("status = %d, want %d (backup handler unavailable tanpa DB)", rec.Code, http.StatusServiceUnavailable)
-		}
+	if len(resp.Transactions) != 1 {
+		t.Errorf("transactions count = %d, want 1", len(resp.Transactions))
 	}
+}
+
+// TestBackupHandlerSingleDayRange verifies start_date == end_date works.
+func TestBackupHandlerSingleDayRange(t *testing.T) {
+	userID := "01234567-89ab-cdef-0123-456789abcdef"
+	date := "2024-05-15"
+	transactions := []repository.Transaction{
+		{
+			ID:           "11111111-2222-3333-4444-555555555555",
+			UserID:       userID,
+			TransactedAt: time.Date(2024, 5, 15, 10, 30, 0, 0, time.UTC),
+			Payload:      json.RawMessage(`{"amount":100.5}`),
+		},
+	}
+
+	repo := &mockBackupRepo{transactions: transactions}
+	query := fmt.Sprintf("user_id=%s&start_date=%s&end_date=%s", userID, date, date)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/backup?"+query, nil)
+	rec := httptest.NewRecorder()
+
+	backupHandler(repo)(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+
+	var resp struct {
+		Transactions []repository.Transaction `json:"transactions"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+
+	if len(resp.Transactions) != 1 {
+		t.Errorf("transactions count = %d, want 1", len(resp.Transactions))
+	}
+}
+
+// TestRouterBackupRoute verifies the /api/v1/backup route is registered.
+func TestRouterBackupRoute(t *testing.T) {
+	router := NewRouter(nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/backup?user_id=01234567-89ab-cdef-0123-456789abcdef&start_date=2024-01-01&end_date=2024-01-31", nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	// Nil DB → backup handler merespon 503 service unavailable, bukan 404
+	// (route ter-register dan handler dijalankan).
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Errorf("status = %d, want %d (backup handler unavailable tanpa DB)", rec.Code, http.StatusServiceUnavailable)
+	}
+}
 
 // TestBackupHandlerIdempotent verifies two consecutive GET calls return
 // identical data — a read never deletes server data, so restore is repeatable.

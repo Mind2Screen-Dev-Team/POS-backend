@@ -58,9 +58,9 @@ func TestBackupHandler_Validation(t *testing.T) {
 		{
 			name: "batch > 500",
 			request: backupRequest{
-				UserID:    "123e4567-e89b-12d3-a456-426614174000",
-				StartDate: "2023-01-01",
-				EndDate:   "2023-01-02",
+				UserID:       "123e4567-e89b-12d3-a456-426614174000",
+				StartDate:    "2023-01-01",
+				EndDate:      "2023-01-02",
 				Transactions: make([]transaction, 501),
 			},
 			expectedStatus: http.StatusBadRequest,
@@ -150,9 +150,9 @@ func TestBackupHandler_ResponseStructure(t *testing.T) {
 
 func TestBackupHandler_StoredCount(t *testing.T) {
 	request := backupRequest{
-		UserID:    uuid.New().String(),
-		StartDate: "2023-01-01",
-		EndDate:   "2023-01-02",
+		UserID:       uuid.New().String(),
+		StartDate:    "2023-01-01",
+		EndDate:      "2023-01-02",
 		Transactions: make([]transaction, 500),
 	}
 
